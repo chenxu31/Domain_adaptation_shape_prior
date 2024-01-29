@@ -4,7 +4,7 @@ from functools import reduce
 from pathlib import Path
 from pprint import pprint
 from typing import List, Dict, Any, Tuple, Optional, Union
-
+import pdb
 import yaml
 
 from utils.general import path2Path
@@ -39,7 +39,10 @@ class yamlArgParser:
         parsed_args, base_filepath, extra_variable_list = self._setup(test_message)
         yaml_args: List[Dict[str, Any]] = [self.parse_string2flatten_dict(f) for f in parsed_args]
         hierarchical_dict_list = [self.create_dictionary_hierachy(d) for d in yaml_args]
-        merged_args = self.merge_dict(hierarchical_dict_list)
+        if len(hierarchical_dict_list) > 0:
+            merged_args = self.merge_dict(hierarchical_dict_list)
+        else:
+            merged_args = {}
         return merged_args, base_filepath, extra_variable_list
 
     @classmethod
@@ -54,9 +57,9 @@ class yamlArgParser:
         )
         # parser.add_argument("--opt-path", type=str, default=None, required=False, nargs=argparse.ZERO_OR_MORE,
         #                     help="optional config path locations", )
-        parser.add_argument("optional_variables", nargs="*", type=str, default=[""], help="optional variables")
+        parser.add_argument("optional_variables", nargs="*", type=str, default=[], help="optional variables")
         args, extra_variables = parser.parse_known_args(test_message)
-        return args.optional_variables, args.path, extra_variables
+        return [], args.path, extra_variables
 
     def parse_string2flatten_dict(self, string) -> Dict[str, Any]:
         """

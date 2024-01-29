@@ -12,7 +12,7 @@ from meters.SummaryWriter import get_tb_writer
 from utils.utils import switch_plt_backend
 from skimage.io import imsave
 import os
-from MulticoreTSNE import MulticoreTSNE as TSNE
+#from MulticoreTSNE import MulticoreTSNE as TSNE
 
 def save_joint_distribution(images: np.ndarray, root, mode, iter):
     assert images.ndim == 2
@@ -424,6 +424,7 @@ def save_images(segs: Tensor, names: Iterable[str], root: Union[str, Path], mode
 
 
 def draw_pictures(input_data, input_target, save_name, show_legend=False):
+    pass
     tsne = TSNE(n_jobs=8, n_components=2, verbose=1, perplexity=40, n_iter=300)
     tsne_results = tsne.fit_transform(input_data, None)
     label = ["Background", "LVM", "LAC", "LVC", "AA"]
@@ -438,6 +439,7 @@ def draw_pictures(input_data, input_target, save_name, show_legend=False):
     plt.close()
 
 def tsne16(input_data, input_target, save_name, show_legend=False):
+    pass
     tsne = TSNE(n_jobs=8, n_components=2, verbose=1, perplexity=40, n_iter=300)
     tsne_results = tsne.fit_transform(input_data, None)
     label = ["f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12", "f13", "f14", "f15", "f16"]

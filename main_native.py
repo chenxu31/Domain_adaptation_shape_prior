@@ -17,8 +17,10 @@ from arch.unet import UNet
 import platform
 
 if platform.system() == 'Windows':
+    NUM_WORKERS = 0
     UTIL_DIR = r"E:\我的坚果云\sourcecode\python\util"
 else:
+    NUM_WORKERS = 4
     UTIL_DIR = r"/home/chenxu/我的坚果云/sourcecode/python/util"
 
 sys.path.append(UTIL_DIR)
@@ -28,9 +30,9 @@ import common_pelvic_pt as common_pelvic
 
 class DatasetPelvic(common_pelvic.Dataset):
     def __getitem__(self, idx):
-        ret = super(Dataset, self).__getitem__(idx)
+        ret = super(DatasetPelvic, self).__getitem__(idx)
 
-        return [ret["image"], ret["label"]], ""
+        return [ret["image"], ret["label"] if "label" in ret else ret["image"]], ""
 
 
 def main(args):
@@ -78,6 +80,7 @@ def main(args):
         weight_cluster=weight_cluster,
         switch_bn=switch_bn,
         config=config,
+        num_batches=min(len(dataloader_s), len(dataloader_t)),
         **config['Trainer']
     )
 
@@ -92,7 +95,7 @@ if __name__ == '__main__':
     parser.add_argument('--data_dir', type=str, default='/home/chenxu/datasets/pelvic/h5_data', help='path of the dataset')
     parser.add_argument('--checkpoint_dir', type=str, default='', help='checkpoint_dir')
     parser.add_argument('--task', type=str, default='pelvic', choices=["pelvic", ], help='task')
-    parser.add_argument('--num_classes', type=int, default=5, help='number of classes')
+    parser.add_argument('--num_classes', type=int, default=4, help='number of classes')
     parser.add_argument('--batch_size', type=int, default=4, help='batch size')
     parser.add_argument('--lr', type=float, default=1e-5, help='learning rate')
     parser.add_argument('--debug', type=int, default=0, help='debug flag')

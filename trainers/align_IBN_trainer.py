@@ -2,6 +2,8 @@ from typing import Union
 import pdb
 import torch
 import torch.nn as nn
+import sys
+import numpy
 from torch.utils.data import DataLoader
 from torch.utils.data.dataloader import _BaseDataLoaderIter
 
@@ -24,6 +26,7 @@ else:
 
 sys.path.append(UTIL_DIR)
 import common_metrics
+import common_net_pt as common_net
 import common_pelvic_pt as common_pelvic
 
 
@@ -64,9 +67,9 @@ class align_IBNtrainer(SourcebaselineTrainer):
             t_data[1],
         )
 
-        S_img = self._rising_augmentation(S_img, mode="image", seed=cur_batch)
-        S_target = self._rising_augmentation(S_target.float(), mode="feature", seed=cur_batch)
-        T_img = self._rising_augmentation(T_img, mode="image", seed=cur_batch)
+        #S_img = self._rising_augmentation(S_img, mode="image", seed=cur_batch)
+        #S_target = self._rising_augmentation(S_target.float(), mode="feature", seed=cur_batch)
+        #T_img = self._rising_augmentation(T_img, mode="image", seed=cur_batch)
 
         with self.switch_bn(self.model, 0), self.extractor.enable_register(True):
             self.extractor.clear()
@@ -218,7 +221,7 @@ class align_IBNtrainer_native(align_IBNtrainer):
 
         if config["Data_input"]["dataset"] == "pelvic":
             self.best_dsc = 0
-            _, self.val_data_t, _, self.val_label_t = common_pelvic.load_val_data(config["Data_input"]["data_dir"], valid=True)
+            _, self.val_data_t, _, self.val_label_t = common_pelvic.load_val_data(config["Data_input"]["data_dir"])
 
     def start_training(self):
         self.to(self.device)
@@ -230,16 +233,16 @@ class align_IBNtrainer_native(align_IBNtrainer):
                 trainT_loader=self._trainT_loader,
                 epoch=self.cur_epoch
             )
-            pdb.set_trace()
-
+            
             self.model.eval()
-            val_dsc = numpy.zeros((len(self.val_data_t), self._config['Data_input']['num_class']), numpy.float32)
+            val_dsc = numpy.zeros((len(self.val_data_t), self._config['Data_input']['num_class'] - 1), numpy.float32)
             patch_shape = (1, self.val_data_t[0].shape[1], self.val_data_t[0].shape[2])
             with torch.no_grad():
                 for i in range(len(self.val_data_t)):
-                    pred = common_net.produce_results(self.device, lambda x: self.model(x).softmax(1), [patch_shape, ],
-                                                      [self.val_data_t[i], ], data_shape=self.val_data_t[i].shape,
-                                                      patch_shape=self.patch_shape, is_seg=True)
+                    with self.switch_bn(self.model, 1):
+                        pred = common_net.produce_results(self.device, lambda x: self.model(x).softmax(1).unsqueeze(2), [patch_shape, ],
+                                                          [self.val_data_t[i], ], data_shape=self.val_data_t[i].shape,
+                                                          patch_shape=patch_shape, is_seg=True, num_classes=self._config['Data_input']['num_class'])
 
                     dsc = common_metrics.calc_multi_dice(pred, self.val_label_t[i], num_cls=self._config['Data_input']['num_class'])
                     val_dsc[i, :] = dsc
