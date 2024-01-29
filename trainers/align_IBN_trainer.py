@@ -240,7 +240,7 @@ class align_IBNtrainer_native(align_IBNtrainer):
             with torch.no_grad():
                 for i in range(len(self.val_data_t)):
                     with self.switch_bn(self.model, 1):
-                        pred = common_net.produce_results(self.device, lambda x: self.model(x).softmax(1).unsqueeze(2), [patch_shape, ],
+                        pred = common_net.produce_results(self.device, self.produce, [patch_shape, ],
                                                           [self.val_data_t[i], ], data_shape=self.val_data_t[i].shape,
                                                           patch_shape=patch_shape, is_seg=True, num_classes=self._config['Data_input']['num_class'])
 
@@ -257,3 +257,10 @@ class align_IBNtrainer_native(align_IBNtrainer):
 
             self.schedulerStep()
             self.save_checkpoint(self.state_dict(), self.cur_epoch)
+
+    def produce(self, x):
+        with self.switch_bn(self.model, 1):
+            pred = self.model(x)
+
+        pdb.set_trace()
+        return pred.softmax(1).unsqueeze(2)
