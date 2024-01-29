@@ -256,7 +256,7 @@ class SourcebaselineTrainer:
                     epoch=self.cur_epoch
                 )
 
-            with self.meters.focus_on("val"), torch.no_grad():
+            with self._valT_loader is not None and self.meters.focus_on("val"), torch.no_grad():
                 val_metric, _ = self.eval_loop(self._valT_loader, self._test_loader, self.cur_epoch)
 
             with self._storage:

@@ -1,4 +1,5 @@
 from typing import Union
+import pdb
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -13,6 +14,17 @@ from trainers.SourceTrainer import SourcebaselineTrainer
 from utils.general import class2one_hot, average_list, simplex
 from utils.image_save_utils import plot_joint_matrix1, plot_feature, plot_seg
 from utils.utils import fix_all_seed_within_context
+from datetime import datetime
+import platform
+
+if platform.system() == 'Windows':
+    UTIL_DIR = r"E:\我的坚果云\sourcecode\python\util"
+else:
+    UTIL_DIR = r"/home/chenxu/我的坚果云/sourcecode/python/util"
+
+sys.path.append(UTIL_DIR)
+import common_metrics
+import common_pelvic_pt as common_pelvic
 
 
 class align_IBNtrainer(SourcebaselineTrainer):
@@ -24,10 +36,10 @@ class align_IBNtrainer(SourcebaselineTrainer):
                  weight_scheduler: RampScheduler,
                  weight_cluster: RampScheduler,
                  model: nn.Module,
-                 optimizer, scheduler, *args, **kwargs) -> None:
+                 optimizer, scheduler, config, *args, **kwargs) -> None:
 
         super().__init__(model, optimizer, scheduler, TrainS_loader, TrainT_loader, valT_loader, test_loader,
-                         weight_scheduler, weight_cluster, *args, **kwargs)
+                         weight_scheduler, weight_cluster, config=config, *args, **kwargs)
 
         with fix_all_seed_within_context(self._config['seed']):
             self.projector = DenseClusterHead(
@@ -191,3 +203,54 @@ class align_IBNtrainer(SourcebaselineTrainer):
                                    close=True, )
 
         return s_loss, entT_loss, align_loss
+
+
+class align_IBNtrainer_native(align_IBNtrainer):
+    def __init__(self, TrainS_loader: Union[DataLoader, _BaseDataLoaderIter],
+                 TrainT_loader: Union[DataLoader, _BaseDataLoaderIter],
+                 weight_scheduler: RampScheduler,
+                 weight_cluster: RampScheduler,
+                 model: nn.Module,
+                 optimizer, scheduler, config, *args, **kwargs) -> None:
+
+        super(align_IBNtrainer_native, self).__init__(TrainS_loader, TrainT_loader, None, None,
+                         weight_scheduler, weight_cluster, model, optimizer, scheduler, config, *args, **kwargs)
+
+        if config["Data_input"]["dataset"] == "pelvic":
+            self.best_dsc = 0
+            _, self.val_data_t, _, self.val_label_t = common_pelvic.load_val_data(config["Data_input"]["data_dir"], valid=True)
+
+    def start_training(self):
+        self.to(self.device)
+        self.cur_epoch = 0
+
+        for self.cur_epoch in range(self._start_epoch, self._max_epoch):
+            train_metrics = self.train_loop(
+                trainS_loader=self._trainS_loader,
+                trainT_loader=self._trainT_loader,
+                epoch=self.cur_epoch
+            )
+            pdb.set_trace()
+
+            self.model.eval()
+            val_dsc = numpy.zeros((len(self.val_data_t), self._config['Data_input']['num_class']), numpy.float32)
+            patch_shape = (1, self.val_data_t[0].shape[1], self.val_data_t[0].shape[2])
+            with torch.no_grad():
+                for i in range(len(self.val_data_t)):
+                    pred = common_net.produce_results(self.device, lambda x: self.model(x).softmax(1), [patch_shape, ],
+                                                      [self.val_data_t[i], ], data_shape=self.val_data_t[i].shape,
+                                                      patch_shape=self.patch_shape, is_seg=True)
+
+                    dsc = common_metrics.calc_multi_dice(pred, self.val_label_t[i], num_cls=self._config['Data_input']['num_class'])
+                    val_dsc[i, :] = dsc
+
+            if val_dsc.mean() > self.best_dsc:
+                self.best_dsc = val_dsc.mean()
+
+                self.save_checkpoint(self.state_dict(), self.cur_epoch, self._config["Trainer"]["checkpoint_dir"], "best.pth")
+
+            print("%s  Epoch:%d  val_dsc:%f/%f  best_dsc:%f" %
+                  (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), self.cur_epoch, val_dsc.mean(), val_dsc.std(), self.best_dsc))
+
+            self.schedulerStep()
+            self.save_checkpoint(self.state_dict(), self.cur_epoch)
