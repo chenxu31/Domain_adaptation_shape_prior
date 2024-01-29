@@ -262,5 +262,4 @@ class align_IBNtrainer_native(align_IBNtrainer):
         with self.switch_bn(self.model, 1):
             pred = self.model(x)
 
-        pdb.set_trace()
         return pred.softmax(1).unsqueeze(2)
