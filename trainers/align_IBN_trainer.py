@@ -242,7 +242,6 @@ class align_IBNtrainer_native(align_IBNtrainer):
                     pred = common_net.produce_results(self.device, self.produce, [patch_shape, ],
                                                       [self.val_data_t[i], ], data_shape=self.val_data_t[i].shape,
                                                       patch_shape=patch_shape, is_seg=True, num_classes=self._config['Data_input']['num_class'])
-                    pdb.set_trace()
                     pred = pred.argmax(0).astype(numpy.float32)
                     dsc = common_metrics.calc_multi_dice(pred, self.val_label_t[i], num_cls=self._config['Data_input']['num_class'])
                     val_dsc[i, :] = dsc
