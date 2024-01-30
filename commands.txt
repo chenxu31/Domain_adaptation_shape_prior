@@ -1,0 +1,4 @@
+#pelvic
+python main_native.py --gpu 0 --data_dir ~/datasets/pelvic/h5_data --checkpoint_dir ~/training/checkpoints/shape_prior/pelvic --lr 1e-4
+
+python test_native.py --gpu 0 --data_dir ~/datasets/pelvic/h5_data --checkpoint_dir ~/training/checkpoints/shape_prior/pelvic --pretrained_tag best --output_dir ~/training/test_output/shape_prior/pelvic
