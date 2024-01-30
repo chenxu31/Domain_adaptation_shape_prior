@@ -149,10 +149,11 @@ class SourcebaselineTrainer:
             **kwargs,
     ):
         self.model.train()
-        batch_indicator = tqdm(range(self._num_batches))
-        batch_indicator.set_description(f"Training Epoch {epoch:03d}")
+        #batch_indicator = tqdm(range(self._num_batches))
+        #batch_indicator.set_description(f"Training Epoch {epoch:03d}")
 
-        for cur_batch, (batch_id, s_data, t_data) in enumerate(zip(batch_indicator, trainS_loader, trainT_loader)):
+        #for cur_batch, (batch_id, s_data, t_data) in enumerate(zip(batch_indicator, trainS_loader, trainT_loader)):
+        for cur_batch, (s_data, t_data) in enumerate(zip(trainS_loader, trainT_loader)):
             self.optimizer.zero_grad()
 
             s_loss, cluster_loss, align_loss = self.run_step(s_data=s_data, t_data=t_data, cur_batch=cur_batch)
@@ -168,9 +169,9 @@ class SourcebaselineTrainer:
             self.meters['align_loss'].add(align_loss.item())
             self.meters['cluster_loss'].add(cluster_loss.item())
 
-            report_dict = self.meters.statistics()
-            batch_indicator.set_postfix_statics(report_dict)
-        batch_indicator.close()
+            #report_dict = self.meters.statistics()
+            #batch_indicator.set_postfix_statics(report_dict)
+        #batch_indicator.close()
         report_dict = self.meters.statistics()
         assert report_dict is not None
         return dict(report_dict)
