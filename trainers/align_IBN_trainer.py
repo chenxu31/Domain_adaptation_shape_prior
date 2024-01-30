@@ -239,11 +239,11 @@ class align_IBNtrainer_native(align_IBNtrainer):
             patch_shape = (1, self.val_data_t[0].shape[1], self.val_data_t[0].shape[2])
             with torch.no_grad():
                 for i in range(len(self.val_data_t)):
-                    with self.switch_bn(self.model, 1):
-                        pred = common_net.produce_results(self.device, self.produce, [patch_shape, ],
-                                                          [self.val_data_t[i], ], data_shape=self.val_data_t[i].shape,
-                                                          patch_shape=patch_shape, is_seg=True, num_classes=self._config['Data_input']['num_class'])
-
+                    pred = common_net.produce_results(self.device, self.produce, [patch_shape, ],
+                                                      [self.val_data_t[i], ], data_shape=self.val_data_t[i].shape,
+                                                      patch_shape=patch_shape, is_seg=True, num_classes=self._config['Data_input']['num_class'])
+                    pdb.set_trace()
+                    pred = pred.argmax(0).astype(numpy.float32)
                     dsc = common_metrics.calc_multi_dice(pred, self.val_label_t[i], num_cls=self._config['Data_input']['num_class'])
                     val_dsc[i, :] = dsc
 
@@ -256,7 +256,7 @@ class align_IBNtrainer_native(align_IBNtrainer):
                   (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), self.cur_epoch, val_dsc.mean(), val_dsc.std(), self.best_dsc))
 
             self.schedulerStep()
-            self.save_checkpoint(self.state_dict(), self.cur_epoch)
+            self.save_checkpoint(self.state_dict(), self.cur_epoch, self._config["Trainer"]["checkpoint_dir"], "last.pth")
 
     def produce(self, x):
         with self.switch_bn(self.model, 1):

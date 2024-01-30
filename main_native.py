@@ -36,11 +36,18 @@ class DatasetPelvic(common_pelvic.Dataset):
 
 
 def main(args):
+    if args.task == 'pelvic':
+        num_classes = common_pelvic.NUM_CLASSES
+        dataset_s = DatasetPelvic(args.data_dir, "ct", debug=args.debug)
+        dataset_t = DatasetPelvic(args.data_dir, "cbct", debug=args.debug)
+    else:
+        raise NotImplementedError(config['Data_input']['dataset'])
+
     cmanager = ConfigManager("configs/config.yaml", strict=True)
     config = cmanager.config
     config["Data_input"]["dataset"] = args.task
     config["Data_input"]["data_dir"] = args.data_dir
-    config["Data_input"]["num_class"] = args.num_classes
+    config["Data_input"]["num_class"] = num_classes
     config["DataLoader"]["batch_size"] = args.batch_size
     config["Trainer"]["checkpoint_dir"] = args.checkpoint_dir
     config["Optim"]["lr"] = args.lr
@@ -58,11 +65,6 @@ def main(args):
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=max(90, 1), eta_min=1e-7)
         scheduler = GradualWarmupScheduler(optimizer, multiplier=300, total_epoch=10, after_scheduler=scheduler)
 
-    if config['Data_input']['dataset'] == 'pelvic':
-        dataset_s = DatasetPelvic(args.data_dir, "ct", debug=args.debug)
-        dataset_t = DatasetPelvic(args.data_dir, "cbct", debug=args.debug)
-    else:
-        raise NotImplementedError(config['Data_input']['dataset'])
 
     dataloader_s = torch.utils.data.DataLoader(dataset_s, batch_size=args.batch_size, shuffle=False, pin_memory=True, drop_last=True, num_workers=NUM_WORKERS)
     dataloader_t = torch.utils.data.DataLoader(dataset_t, batch_size=args.batch_size, shuffle=False, pin_memory=True, drop_last=True, num_workers=NUM_WORKERS)
@@ -95,7 +97,6 @@ if __name__ == '__main__':
     parser.add_argument('--data_dir', type=str, default='/home/chenxu/datasets/pelvic/h5_data', help='path of the dataset')
     parser.add_argument('--checkpoint_dir', type=str, default='', help='checkpoint_dir')
     parser.add_argument('--task', type=str, default='pelvic', choices=["pelvic", ], help='task')
-    parser.add_argument('--num_classes', type=int, default=4, help='number of classes')
     parser.add_argument('--batch_size', type=int, default=4, help='batch size')
     parser.add_argument('--lr', type=float, default=1e-5, help='learning rate')
     parser.add_argument('--debug', type=int, default=0, help='debug flag')
